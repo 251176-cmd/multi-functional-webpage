@@ -13,7 +13,8 @@ export const BULLET_SPEED = 440;
 export const PLAYER_MAX_HP = 100;
 export const NPC_MAX_HP = 40;
 export const BULLET_DAMAGE_PLAYER = 18;
-export const BULLET_DAMAGE_NPC = 22;
+// Player bullets vs NPCs: one-shot kills.
+export const BULLET_DAMAGE_NPC = 999;
 export const FIRE_COOLDOWN_MS = 280;
 export const NPC_FIRE_COOLDOWN_MS = 900;
 export const TARGET_NPC_COUNT = 7;
