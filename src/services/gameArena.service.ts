@@ -28,6 +28,38 @@ function toGameStateResponse(arena: GameArenaDocument, now: number): GameStateRe
  */
 export class GameArenaService {
   /**
+   * Live arena cache. MongoDB remains the source of truth for persistence, but realtime play
+   * uses in-memory state to avoid per-tick DB reads/writes (which get laggy as players join).
+   */
+  private static getCache(): Map<string, { arena: GameArenaDocument; lastPersistAt: number }> {
+    const g = globalThis as unknown as {
+      __vc4sArenaCache?: Map<string, { arena: GameArenaDocument; lastPersistAt: number }>;
+    };
+    if (!g.__vc4sArenaCache) g.__vc4sArenaCache = new Map();
+    return g.__vc4sArenaCache;
+  }
+
+  private static async loadArena(roomId: string, now: number): Promise<GameArenaDocument> {
+    const cache = this.getCache();
+    const cached = cache.get(roomId);
+    if (cached) return cached.arena;
+
+    const arena = await GameArenaDao.getOrCreateArena(roomId, now);
+    cache.set(roomId, { arena, lastPersistAt: now });
+    return arena;
+  }
+
+  private static async maybePersist(roomId: string, now: number): Promise<void> {
+    const cache = this.getCache();
+    const cached = cache.get(roomId);
+    if (!cached) return;
+    const PERSIST_EVERY_MS = 1000;
+    if (now - cached.lastPersistAt < PERSIST_EVERY_MS) return;
+    await GameArenaDao.saveArena(cached.arena);
+    cached.lastPersistAt = now;
+  }
+
+  /**
    * Registers a player in a room and returns initial authoritative state.
    */
   static async join(input: JoinGameInput): Promise<{ playerId: string; state: GameStateResponse }> {
@@ -37,11 +69,13 @@ export class GameArenaService {
     const spawnX = margin + Math.random() * (ARENA_WIDTH - margin * 2);
     const spawnY = margin + Math.random() * (ARENA_HEIGHT - margin * 2);
 
-    const arena = await GameArenaDao.addPlayer(
-      input.roomId,
+    const arena = await this.loadArena(input.roomId, now);
+    const playerName = input.displayName.trim();
+    arena.players = [
+      ...arena.players.filter((p) => p.id !== playerId),
       {
         id: playerId,
-        name: input.displayName.trim(),
+        name: playerName,
         x: spawnX,
         y: spawnY,
         angle: 0,
@@ -50,8 +84,13 @@ export class GameArenaService {
         score: 0,
         lastSeenAt: now,
       },
-      now,
-    );
+    ];
+    arena.updatedAt = now;
+
+    // Persist immediately so refreshes / other nodes can see the new player quickly.
+    await GameArenaDao.saveArena(arena);
+    const cached = this.getCache().get(input.roomId);
+    if (cached) cached.lastPersistAt = now;
 
     return { playerId, state: toGameStateResponse(arena, now) };
   }
@@ -61,7 +100,7 @@ export class GameArenaService {
    */
   static async sync(input: SyncGameInput): Promise<GameStateResponse> {
     const now = Date.now();
-    const arena = await GameArenaDao.getOrCreateArena(input.roomId, now);
+    const arena = await this.loadArena(input.roomId, now);
     const dt = (now - arena.lastSimAt) / 1000;
 
     const player = arena.players.find((p) => p.id === input.playerId);
@@ -82,7 +121,7 @@ export class GameArenaService {
       now,
     );
 
-    await GameArenaDao.saveArena(arena);
+    await this.maybePersist(input.roomId, now);
     return toGameStateResponse(arena, now);
   }
 
@@ -91,7 +130,7 @@ export class GameArenaService {
    */
   static async getState(roomId: string): Promise<GameStateResponse> {
     const now = Date.now();
-    const arena = await GameArenaDao.getOrCreateArena(roomId, now);
+    const arena = await this.loadArena(roomId, now);
     return toGameStateResponse(arena, now);
   }
 }

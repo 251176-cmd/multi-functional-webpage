@@ -8,7 +8,8 @@ type KeysHeld = { w: boolean; a: boolean; s: boolean; d: boolean };
 
 const STORAGE_NAME = 'vc4s_game_display_name';
 const ROOM_ID = 'main';
-const SYNC_MS = 45;
+// 10Hz is plenty for this Mongo-backed demo and reduces jitter when more players join.
+const SYNC_MS = 100;
 
 /**
  * Calls a Next.js game API route and parses JSON.
