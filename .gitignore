@@ -1,0 +1,45 @@
+node_modules
+# nextjs build output
+.next/
+out/
+
+# local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# system files
+.DS_Store
+Thumbs.db
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# vscode config
+.vscode/
+
+# coverage from tests
+coverage/
+
+# typescript
+*.tsbuildinfo
+
+# custom build outputs, swp/undo files
+/dist
+*.swp
+*.swo
+
+# public export tmp
+public/exported/
+
+# local database or temp data/example
+tmp/
+*.sqlite
+
+# ignore next.config if local only
+next.config.local.js

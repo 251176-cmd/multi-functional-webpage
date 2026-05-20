@@ -1,0 +1,169 @@
+VC4S STARTER TEMPLATE - RESTFUL API SPECIFICATION
+=======================================
+
+This document describes all available API endpoints for the VC4S Starter Template.
+
+---
+
+1. HEALTH CHECK
+---------------
+Endpoint: GET /api/health
+Description: Verifies that the server is running and returns basic system status.
+
+Request:
+  None
+
+Response (200 OK):
+  {
+    "status": "string",     // "UP" or "DOWN"
+    "timestamp": "string",  // ISO 8601 format
+    "uptime": "number"      // Server uptime in seconds
+  }
+  Example: { "status": "UP", "timestamp": "2026-01-01T12:00:00.000Z", "uptime": 3600 }
+
+---
+
+2. USER AUTHENTICATION
+----------------------
+
+2.1 Send OTP
+Endpoint: POST /api/auth/send-otp
+Description: Sends an OTP to the user's email for registration.
+
+Request (JSON):
+  {
+    "email": "string",      // Required, valid email format
+    "type": "string"        // Required, "registration"
+  }
+  Example: { "email": "user@example.com", "type": "registration" }
+
+Response (200 OK):
+  {
+    "message": "string"
+  }
+  Example: { "message": "OTP sent successfully. Please check your email." }
+
+2.2 User Register
+Endpoint: POST /api/auth/register
+Description: Registers a new user. Requires a valid OTP previously sent to the email.
+
+Request (JSON):
+  {
+    "email": "string",      // Required, valid email format
+    "password": "string",   // Required, min 8 characters
+    "name": "string",       // Optional, min 2 characters
+    "otp": "string"         // Required, 6-digit OTP code
+  }
+  Example: { "email": "user@example.com", "password": "password123", "name": "John Doe", "otp": "123456" }
+
+Response (201 Created):
+  {
+    "message": "string"
+  }
+  Example: { "message": "User registered successfully. You can now login." }
+
+2.3 User Login
+Endpoint: POST /api/auth/login
+Description: Authenticates a verified user and returns a JWT token.
+
+Request (JSON):
+  {
+    "email": "string",      // Required
+    "password": "string"    // Required
+  }
+  Example: { "email": "user@example.com", "password": "password123" }
+
+Response (200 OK):
+  {
+    "message": "string",
+    "token": "string",      // JWT Access Token
+    "user": {
+      "id": "string",       // MongoDB ObjectId string
+      "email": "string",
+      "name": "string",
+      "role": "string"      // "user" or "admin"
+    }
+  }
+  Example: { "token": "eyJhbG...", "user": { "id": "60...", "email": "user@example.com", "role": "user" } }
+
+2.4 Forgot Password
+Endpoint: POST /api/auth/forgot-password
+Description: Initiates password reset by sending a 6-digit OTP to the user's email (if the account exists).
+
+Request (JSON):
+  {
+    "email": "string"       // Required
+  }
+  Example: { "email": "user@example.com" }
+
+Response (200 OK):
+  {
+    "message": "string"
+  }
+  Example: { "message": "If an account exists with this email, you will receive an OTP shortly." }
+
+2.5 Reset Password
+Endpoint: POST /api/auth/reset-password
+Description: Resets the user's password. Requires the OTP sent to email and verification of the old password.
+
+Request (JSON):
+  {
+    "email": "string",       // Required
+    "oldPassword": "string", // Required
+    "newPassword": "string", // Required, min 8 characters
+    "otp": "string"          // Required, 6-digit OTP code
+  }
+  Example: { "email": "user@example.com", "oldPassword": "old-pass", "newPassword": "new-pass-123", "otp": "123456" }
+
+Response (200 OK):
+  {
+    "message": "string"
+  }
+  Example: { "message": "Password updated successfully" }
+
+---
+
+3. ADMIN AUTHENTICATION (2FA)
+-----------------------------
+
+3.1 Admin Login (Step 1)
+Endpoint: POST /api/admin/auth/login
+Description: Authenticates admin credentials and triggers an MFA OTP email.
+
+Request (JSON):
+  {
+    "email": "string",      // Required
+    "password": "string"    // Required, min 10 characters
+  }
+  Example: { "email": "admin@vc4s.com", "password": "admin-password-123" }
+
+Response (200 OK):
+  {
+    "mfaRequired": "boolean", // Always true if password is correct
+    "email": "string"         // Admin email for confirmation
+  }
+  Example: { "mfaRequired": true, "email": "admin@vc4s.com" }
+
+3.2 Admin Verify OTP (Step 2)
+Endpoint: POST /api/admin/auth/verify-otp
+Description: Verifies the 2FA OTP and returns the admin session JWT.
+
+Request (JSON):
+  {
+    "email": "string",      // Required
+    "code": "string"        // Required, 6-digit OTP code
+  }
+  Example: { "email": "admin@vc4s.com", "code": "123456" }
+
+Response (200 OK):
+  {
+    "message": "string",
+    "token": "string",      // Admin-scoped JWT Access Token
+    "admin": {
+      "id": "string",       // MongoDB ObjectId string
+      "email": "string",
+      "name": "string",
+      "permissions": "array" // Array of string permissions
+    }
+  }
+  Example: { "token": "eyJhbG...", "admin": { "id": "60...", "email": "admin@vc4s.com", "permissions": ["all"] } }

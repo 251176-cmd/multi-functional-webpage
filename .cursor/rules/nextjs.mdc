@@ -1,0 +1,32 @@
+---
+description: 
+alwaysApply: true
+---
+
+Understand project structure before coding. Use existing patterns and place code in the correct folder.
+
+Project structure and purpose:
+- app/ : Next.js App Router pages, layouts, and API routes
+  - app/admin/* : admin pages, layouts, and client components
+  - app/api/* : API route handlers (route.ts)
+- src/components/ : reusable UI components
+  - src/components/admin/ : admin-specific components (e.g., Sidebar, Modal)
+- src/dao/ : data access layer for DB operations
+- src/services/ : business logic layer
+- src/models/ : TypeScript models/interfaces
+- src/lib/ : shared utilities (mongodb, email, otp, constants)
+- public/ : static assets
+- next.config.ts, tsconfig.json, eslint.config.mjs : config files
+
+Coding rules:
+- Always use TypeScript types for function inputs, outputs, API requests and responses, and component props.
+- Never use `any`. Use explicit types or well-defined interfaces.
+- Use short, clear, meaningful names for variables, functions, and classes.
+- Add clear, step-by-step comments for each function, class, and important logic block.
+  - Explain purpose, inputs, outputs, and side effects.
+- Follow existing project patterns and code style.
+- Modularize by responsibility and place files in the correct subfolder.
+- Always try to reuse components, or create UI components for better reuse.
+- Add just enough logging to help debug, not too noisy.
+
+If unsure where to place code, search for similar files first and follow that structure.

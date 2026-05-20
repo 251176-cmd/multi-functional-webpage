@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --border: rgba(15, 23, 42, 0.10);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --surface: #0f172a;
+    --surface-2: #0b1220;
+    --border: rgba(148, 163, 184, 0.18);
+  }
+}
+
+body {
+  /* Intent: Provide a premium, subtle “studio” background without heavy shadows. */
+  background:
+    radial-gradient(900px 600px at 20% -10%, color-mix(in oklab, #60a5fa 18%, transparent), transparent 60%),
+    radial-gradient(900px 600px at 90% 10%, color-mix(in oklab, #a78bfa 16%, transparent), transparent 58%),
+    linear-gradient(to bottom, var(--background), color-mix(in oklab, var(--background) 88%, #0ea5e9 12%));
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Arial, "Noto Sans", "Apple Color Emoji",
+    "Segoe UI Emoji";
+}
+
+/* Intent: Improve text rendering consistency. */
+html {
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+/* Intent: Subtle selection styling that matches the brand accents. */
+::selection {
+  background: color-mix(in oklab, #3b82f6 28%, transparent);
+}
