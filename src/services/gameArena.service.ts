@@ -6,6 +6,7 @@ import type {
   GameArenaDocument,
   GameStateResponse,
   JoinGameInput,
+  LeaveGameInput,
   SyncGameInput,
 } from '@/src/models/gameArena';
 
@@ -132,5 +133,21 @@ export class GameArenaService {
     const now = Date.now();
     const arena = await this.loadArena(roomId, now);
     return toGameStateResponse(arena, now);
+  }
+
+  /**
+   * Removes a player from the room immediately (explicit leave/offline).
+   */
+  static async leave(input: LeaveGameInput): Promise<void> {
+    const now = Date.now();
+    const arena = await this.loadArena(input.roomId, now);
+    const before = arena.players.length;
+    arena.players = arena.players.filter((p) => p.id !== input.playerId);
+    if (arena.players.length !== before) {
+      arena.updatedAt = now;
+      await GameArenaDao.saveArena(arena);
+      const cached = this.getCache().get(input.roomId);
+      if (cached) cached.lastPersistAt = now;
+    }
   }
 }

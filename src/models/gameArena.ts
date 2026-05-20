@@ -82,6 +82,13 @@ export const SyncGameSchema = z.object({
 
 export type SyncGameInput = z.infer<typeof SyncGameSchema>;
 
+export const LeaveGameSchema = z.object({
+  roomId: z.string().min(1).max(64),
+  playerId: z.string().min(1).max(128),
+});
+
+export type LeaveGameInput = z.infer<typeof LeaveGameSchema>;
+
 /** API response carrying full arena for rendering */
 export interface GameStateResponse {
   roomId: string;

@@ -55,6 +55,7 @@ export default function GameClient() {
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
   const [hud, setHud] = useState({ hp: 0, score: 0 });
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -108,6 +109,41 @@ export default function GameClient() {
       setJoinError(e instanceof Error ? e.message : 'Join failed');
     }
   };
+
+  const leaveGame = useCallback(async (reason: 'button' | 'unload') => {
+    const playerId = playerIdRef.current;
+    if (!playerId) return;
+
+    // Stop local loops immediately.
+    playerIdRef.current = null;
+    latestStateRef.current = null;
+    setJoined(false);
+
+    if (reason === 'button') setLeaving(true);
+
+    try {
+      const payload = JSON.stringify({ roomId: ROOM_ID, playerId });
+
+      // Best effort during unload: sendBeacon if possible.
+      if (reason === 'unload' && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+        const blob = new Blob([payload], { type: 'application/json' });
+        navigator.sendBeacon('/api/game/leave', blob);
+        return;
+      }
+
+      await fetch('/api/game/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        // Helps some browsers allow the request during page transitions.
+        keepalive: true,
+      });
+    } catch {
+      // If leave fails, the server-side TTL still removes the player shortly.
+    } finally {
+      if (reason === 'button') setLeaving(false);
+    }
+  }, []);
 
   /** Draws the latest authoritative snapshot onto the canvas. */
   const renderFrame = useCallback(() => {
@@ -236,6 +272,15 @@ export default function GameClient() {
   }, [joined, renderFrame]);
 
   useEffect(() => {
+    if (!joined) return;
+    const onBeforeUnload = () => {
+      void leaveGame('unload');
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [joined, leaveGame]);
+
+  useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'w' || e.key === 'W') keysRef.current.w = true;
       if (e.key === 'a' || e.key === 'A') keysRef.current.a = true;
@@ -303,13 +348,24 @@ export default function GameClient() {
             Room <span className="font-mono text-slate-800">{ROOM_ID}</span> — state synced via MongoDB
           </p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800">
-          <div>
-            HP: <span className="font-semibold tabular-nums">{hud.hp}</span>
+        <div className="flex items-stretch gap-3">
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800">
+            <div>
+              HP: <span className="font-semibold tabular-nums">{hud.hp}</span>
+            </div>
+            <div>
+              Score: <span className="font-semibold tabular-nums">{hud.score}</span>
+            </div>
           </div>
-          <div>
-            Score: <span className="font-semibold tabular-nums">{hud.score}</span>
-          </div>
+          <button
+            type="button"
+            disabled={leaving}
+            onClick={() => void leaveGame('button')}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+            aria-label="Leave game"
+          >
+            {leaving ? 'Leaving…' : 'Leave'}
+          </button>
         </div>
       </div>
 
